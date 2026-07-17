@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brine Recipe Tool - GUI</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --ink: #162033;
+      --muted: #5d697b;
+      --line: #d9e0ea;
+      --soft: #eef3f8;
+      --accent: #155eef;
+      --accent2: #0f766e;
+      --warn: #a15c00;
+      --bad: #b42318;
+      --good: #067647;
+      --shadow: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.06);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+    header { padding: 18px 24px 14px; background: linear-gradient(90deg, #0b3b75, #0f766e); color: white; }
+    header h1 { margin: 0; font-size: 23px; letter-spacing: .1px; }
+    header p { margin: 6px 0 0; opacity: .92; font-size: 14px; }
+    nav { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid var(--line); padding: 8px 18px; display: flex; gap: 8px; flex-wrap: wrap; box-shadow: 0 1px 1px rgba(16,24,40,.04); }
+    nav button { border: 1px solid var(--line); background: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: var(--ink); font-weight: 600; }
+    nav button.active { background: var(--accent); border-color: var(--accent); color: white; }
+    main { padding: 18px 24px 60px; max-width: 1500px; margin: 0 auto; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .grid { display: grid; gap: 14px; }
+    .grid.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    @media (max-width: 960px) { .grid.two, .grid.three { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 14px; }
+    .card h2 { margin: 0 0 8px; font-size: 18px; }
+    .card h3 { margin: 12px 0 8px; font-size: 15px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .small { font-size: 12px; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; align-items: center; }
+    button, .button-like { border: 1px solid var(--line); background: #fff; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--ink); }
+    button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+    button.secondary { background: var(--accent2); color: white; border-color: var(--accent2); }
+    button.danger { color: var(--bad); border-color: #f1b8b2; background: #fff6f5; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    input, select, textarea { font-family: inherit; font-size: 13px; border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; background: white; color: var(--ink); }
+    input[type="checkbox"] { width: 16px; height: 16px; vertical-align: middle; }
+    input[type="number"], input.numeric { text-align: right; }
+    label { font-size: 13px; color: var(--muted); font-weight: 600; display: inline-block; margin-bottom: 4px; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 1000px) { .metrics { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 520px) { .metrics { grid-template-columns: 1fr; } }
+    .metric { background: var(--soft); border: 1px solid var(--line); padding: 12px; border-radius: 10px; }
+    .metric .label { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .metric .value { font-size: 19px; font-weight: 800; margin-top: 4px; }
+    .metric.good { background: #ecfdf3; border-color: #abefc6; }
+    .metric.warn { background: #fffaeb; border-color: #fedf89; }
+    .metric.bad { background: #fef3f2; border-color: #fecdca; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: white; max-height: 62vh; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    th, td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 6px 7px; vertical-align: middle; }
+    th:last-child, td:last-child { border-right: 0; }
+    thead th { position: sticky; top: 0; z-index: 2; background: #f2f5fa; font-weight: 800; text-align: left; }
+    tbody tr:hover { background: #fafcff; }
+    td.right, th.right { text-align: right; }
+    td.center, th.center { text-align: center; }
+    td.code { font-family: Consolas, Menlo, monospace; font-weight: 700; white-space: nowrap; }
+    .row-muted { opacity: .62; }
+    .pill { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 800; border: 1px solid transparent; }
+    .pill.good { background: #ecfdf3; color: #067647; border-color: #abefc6; }
+    .pill.bad { background: #fef3f2; color: #b42318; border-color: #fecdca; }
+    .pill.warn { background: #fffaeb; color: #a15c00; border-color: #fedf89; }
+    .pill.neutral { background: #eef3f8; color: #344054; border-color: #d9e0ea; }
+    .notice { border-radius: 10px; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--line); background: #fff; }
+    .notice.warn { background: #fffaeb; border-color: #fedf89; color: #7a4100; }
+    .notice.bad { background: #fef3f2; border-color: #fecdca; color: #912018; }
+    .notice.good { background: #ecfdf3; border-color: #abefc6; color: #065f46; }
+    .hint { background: #eff8ff; border: 1px solid #b2ddff; border-radius: 10px; padding: 10px 12px; color: #184e77; }
+    .split { display: grid; grid-template-columns: 1fr 360px; gap: 14px; align-items: start; }
+    @media (max-width: 1120px) { .split { grid-template-columns: 1fr; } }
+    pre.report { white-space: pre-wrap; font-family: Consolas, Menlo, monospace; font-size: 12px; background: #101828; color: #f9fafb; border-radius: 10px; padding: 12px; max-height: 55vh; overflow: auto; }
+    .footer-actions { position: sticky; bottom: 0; background: rgba(246,248,251,.96); backdrop-filter: blur(4px); border-top: 1px solid var(--line); padding: 10px 24px; margin: 24px -24px -60px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .nowrap { white-space: nowrap; }
+    .wide-input { min-width: 86px; width: 100%; }
+    .choice-select { min-width: 170px; }
+    .stock-filter { max-width: 240px; }
+    .hidden { display: none !important; }
+    @media print { nav, .toolbar, .footer-actions, button, input, select { display: none !important; } .section { display: block !important; } body { background: white; } .card { box-shadow: none; break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Team Synthetic Brine Recipe Tool</h1>
+    <p>Enter multiple water analyses, average the tests, choose salts from stock, and generate a charge-balanced mixing recipe.</p>
+  </header>
+
+  <nav id="tabs">
+    <button data-tab="setup" class="active">1. Setup</button>
+    <button data-tab="water">2. Water tests</button>
+    <button data-tab="stock">3. Salt stock</button>
+    <button data-tab="choices">4. Salt choices</button>
+    <button data-tab="results">5. Results</button>
+  </nav>
+
+  <main>
+    <section id="setup" class="section active">
+      <div class="grid two">
+        <div class="card">
+          <h2>Batch settings</h2>
+          <div class="grid two">
+            <div class="field">
+              <label for="volumeL">Final batch volume, L</label>
+              <input id="volumeL" class="numeric" type="number" min="0.000001" step="0.001" />
+            </div>
+            <div class="field">
+              <label for="balanceIon">Balance mode</label>
+              <select id="balanceIon">
+                <option value="Cl">Match chloride exactly; sodium floats</option>
+                <option value="Na">Match sodium exactly; chloride floats</option>
+                <option value="auto">Auto, usually chloride</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="temperatureC">Temperature for report, °C</label>
+              <input id="temperatureC" class="numeric" type="number" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="pH">pH for report / PHREEQC starter</label>
+              <input id="pH" class="numeric" type="number" step="0.01" />
+            </div>
+          </div>
+          <div class="toolbar">
+            <button class="primary" id="runTop">Calculate recipe</button>
+            <button id="saveProject">Download project JSON</button>
+            <label class="button-like" for="loadProjectFile">Load project JSON</label>
+            <input id="loadProjectFile" type="file" accept="application/json,.json" class="hidden" />
+            <button class="danger" id="restoreDefaults">Restore defaults</button>
+          </div>
+          <div class="hint">
+            <strong>Default stock matches your current situation:</strong> NaBr is in stock and KBr is out of stock. The recipe recalculates instead of doing gram-for-gram substitution.
+          </div>
+        </div>
+        <div class="card">
+          <h2>Current calculation status</h2>
+          <div id="statusMetrics" class="metrics"></div>
+          <div id="setupWarnings"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <h2>Workflow</h2>
+        <p class="muted">Use the tabs from left to right. The tool stores edits in this browser automatically.</p>
+        <div class="grid three">
+          <div class="notice good"><strong>1. Water tests:</strong> enter all lab tests. Blank cells are ignored; zero is treated as a measured zero.</div>
+          <div class="notice good"><strong>2. Salt stock:</strong> tick the salts you have and set purity/assay if less than 100%.</div>
+          <div class="notice good"><strong>3. Salt choices:</strong> pick alternatives such as NaBr vs KBr. The result updates automatically.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="water" class="section">
+      <div class="split">
+        <div class="card">
+          <h2>Water tests</h2>
+          <p class="muted">Enter concentrations for as many tests as you have. Blank = not measured. Values like <code>&lt;0.05</code> are treated as half the detection limit.</p>
+          <div class="toolbar">
+            <button id="addTest">Add test column</button>
+            <button id="removeTest">Remove last test</button>
+            <button id="clearWater">Clear all values</button>
+            <button id="loadSample">Load current-brine sample</button>
+            <button id="downloadAverages">Download averaged analysis CSV</button>
+          </div>
+          <div id="testControls" class="toolbar"></div>
+          <div class="table-wrap">
+            <table id="waterTable"></table>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Average and charge balance</h2>
+          <div id="waterMetrics" class="metrics"></div>
+          <div id="chargeDetails" class="notice"></div>
+          <h3>Unit notes</h3>
+          <p class="muted">The recipe calculations use mg/L as the aqueous species. Examples: nitrate as N is converted to nitrate ion, sulfate as S is converted to sulfate, and alkalinity as CaCO₃ is converted using equivalent weight.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="stock" class="section">
+      <div class="card">
+        <h2>Salt stock and purity</h2>
+        <p class="muted">Tick salts that are available. Purity is used as a weighing correction. For example, 99% purity means mass to weigh = pure salt mass / 0.99.</p>
+        <div class="toolbar">
+          <input id="stockSearch" class="stock-filter" placeholder="Filter salts..." />
+          <button id="downloadStock">Download stock CSV</button>
+          <button id="markCommonStock">Mark common brine salts in stock</button>
+          <button id="markAllOut" class="danger">Mark all out of stock</button>
+        </div>
+        <div class="table-wrap">
+          <table id="stockTable"></table>
+        </div>
+      </div>
+    </section>
+
+    <section id="choices" class="section">
+      <div class="grid two">
+        <div class="card">
+          <h2>Salt choices by target species</h2>
+          <p class="muted">The dropdowns only appear for measured species with positive average concentration. If a salt is not in stock, choose another in-stock candidate.</p>
+          <div class="toolbar">
+            <button id="autoChooseSalts">Auto-select in-stock salts</button>
+            <button id="downloadCandidates">Download candidate salts CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="choicesTable"></table>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Substitution guidance</h2>
+          <div id="substitutionGuidance"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="results" class="section">
+      <div class="card">
+        <h2>Recipe results</h2>
+        <div class="toolbar">
+          <button class="primary" id="runResults">Recalculate</button>
+          <button id="downloadRecipe">Download recipe CSV</button>
+          <button id="downloadIonFit">Download ion check CSV</button>
+          <button id="downloadReport">Download report Markdown</button>
+          <button id="printReport">Print / Save PDF</button>
+        </div>
+        <div id="resultMetrics" class="metrics"></div>
+        <div id="resultWarnings"></div>
+      </div>
+      <div class="grid two" style="margin-top:14px;">
+        <div class="card">
+          <h2>Salt recipe</h2>
+          <div class="table-wrap"><table id="recipeTable"></table></div>
+        </div>
+        <div class="card">
+          <h2>Ion fit check</h2>
+          <div class="table-wrap"><table id="ionFitTable"></table></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <h2>Readable report</h2>
+        <pre id="reportText" class="report"></pre>
+      </div>
+    </section>
+
+    <div class="footer-actions">
+      <button class="primary" id="footerRun">Calculate recipe</button>
+      <button id="footerResults">Go to results</button>
+      <span class="muted" id="autosaveStatus">Autosaved locally.</span>
+    </div>
+  </main>
+
+<script>
+(function() {
+  'use strict';
+
+  const WATER_MOLAR_MASS = 18.01528;
+  const EW_CACO3 = 50.04345;
+  const ATOMIC_N = 14.0067;
+  const ATOMIC_S = 32.065;
+  const ATOMIC_P = 30.973761998;
+  const MOLAR_SIO2 = 60.0843;
+  const EPS = 1e-12;
+  const STORAGE_KEY = 'brine_gui_project_v1';
+
+  const SPECIES = [
+    {code:'Na', name:'Sodium', formula:'Na+', mm:22.98976928, charge:1, role:'cation', include:true, notes:'Major cation.'},
+    {code:'K', name:'Potassium', formula:'K+', mm:39.0983, charge:1, role:'cation', include:true, notes:'Major cation.'},
+    {code:'Mg', name:'Magnesium', formula:'Mg2+', mm:24.305, charge:2, role:'cation', include:true, notes:'Major cation.'},
+    {code:'Ca', name:'Calcium', formula:'Ca2+', mm:40.078, charge:2, role:'cation', include:true, notes:'Carbonate/sulfate scaling risk.'},
+    {code:'Sr', name:'Strontium', formula:'Sr2+', mm:87.62, charge:2, role:'cation', include:true, notes:'Celestite risk with sulfate.'},
+    {code:'Ba', name:'Barium', formula:'Ba2+', mm:137.327, charge:2, role:'cation', include:true, notes:'Barite risk with sulfate; toxic salts.'},
+    {code:'Li', name:'Lithium', formula:'Li+', mm:6.94, charge:1, role:'cation', include:true, notes:'Trace cation.'},
+    {code:'NH4', name:'Ammonium', formula:'NH4+', mm:18.03846, charge:1, role:'cation', include:true, notes:'pH/speciation dependent.'},
+    {code:'Fe2', name:'Iron(II)', formula:'Fe2+', mm:55.845, charge:2, role:'trace', include:true, notes:'Redox/pH sensitive; use stock solution.'},
+    {code:'Fe3', name:'Iron(III)', formula:'Fe3+', mm:55.845, charge:3, role:'trace', include:true, notes:'Hydrolysis/precipitation likely.'},
+    {code:'Mn', name:'Manganese', formula:'Mn2+', mm:54.938044, charge:2, role:'trace', include:true, notes:'Trace; stock solution preferred.'},
+    {code:'Al', name:'Aluminium', formula:'Al3+', mm:26.9815385, charge:3, role:'trace', include:true, notes:'pH sensitive.'},
+    {code:'Zn', name:'Zinc', formula:'Zn2+', mm:65.38, charge:2, role:'trace', include:true, notes:'Trace; stock solution preferred.'},
+    {code:'Cu', name:'Copper', formula:'Cu2+', mm:63.546, charge:2, role:'trace', include:true, notes:'Trace; stock solution preferred.'},
+    {code:'Ni', name:'Nickel', formula:'Ni2+', mm:58.6934, charge:2, role:'trace', include:true, notes:'Trace; stock solution preferred.'},
+    {code:'Co', name:'Cobalt', formula:'Co2+', mm:58.933194, charge:2, role:'trace', include:true, notes:'Trace; stock solution preferred.'},
+    {code:'Pb', name:'Lead', formula:'Pb2+', mm:207.2, charge:2, role:'trace', include:true, notes:'Toxic; only with approved controls.'},
+    {code:'Cl', name:'Chloride', formula:'Cl-', mm:35.4527, charge:-1, role:'anion', include:true, notes:'Major anion; common balance ion.'},
+    {code:'Br', name:'Bromide', formula:'Br-', mm:79.904, charge:-1, role:'anion', include:true, notes:'NaBr or KBr source.'},
+    {code:'I', name:'Iodide', formula:'I-', mm:126.90447, charge:-1, role:'anion', include:true, notes:'Small masses; stock solution recommended.'},
+    {code:'F', name:'Fluoride', formula:'F-', mm:18.998403163, charge:-1, role:'anion', include:true, notes:'Toxicity controls required.'},
+    {code:'SO4', name:'Sulfate', formula:'SO4 2-', mm:96.06, charge:-2, role:'anion', include:true, notes:'Gypsum/celestite/barite scaling risk.'},
+    {code:'HCO3', name:'Bicarbonate / Alkalinity', formula:'HCO3-', mm:61.0168, charge:-1, role:'anion', include:true, notes:'Carbonate scaling and pH dependent.'},
+    {code:'CO3', name:'Carbonate', formula:'CO3 2-', mm:60.0089, charge:-2, role:'anion', include:true, notes:'Raises pH; carbonate scaling risk.'},
+    {code:'NO3', name:'Nitrate', formula:'NO3-', mm:62.0049, charge:-1, role:'anion', include:true, notes:'Can be reported as N.'},
+    {code:'NO2', name:'Nitrite', formula:'NO2-', mm:46.0055, charge:-1, role:'anion', include:true, notes:'Can be reported as N.'},
+    {code:'PO4', name:'Phosphate', formula:'PO4 3-', mm:94.9714, charge:-3, role:'anion', include:true, notes:'Calcium phosphate precipitation risk.'},
+    {code:'OH', name:'Hydroxide', formula:'OH-', mm:17.00734, charge:-1, role:'anion', include:true, notes:'Usually handled through pH, not salt mass.'},
+    {code:'S', name:'Sulfide as S2-', formula:'S2-', mm:32.065, charge:-2, role:'anion', include:true, notes:'Redox/pH dependent; simplified.'},
+    {code:'B', name:'Boron', formula:'B', mm:10.81, charge:0, role:'neutral', include:true, notes:'Usually boric acid/borate; pH dependent.'},
+    {code:'SiO2', name:'Silica', formula:'SiO2', mm:60.0843, charge:0, role:'neutral', include:true, notes:'Solubility and pH dependent.'},
+    {code:'TDS', name:'Total dissolved solids', formula:'TDS', mm:null, charge:null, role:'report', include:false, notes:'Report-only check.'},
+    {code:'pH', name:'pH', formula:'pH', mm:null, charge:null, role:'report', include:false, notes:'Report-only.'},
+    {code:'Density', name:'Density / specific gravity', formula:'density', mm:null, charge:null, role:'report', include:false, notes:'Report-only.'}
+  ];
+
+  const SALTS = [
+    {code:'NaCl', name:'Sodium chloride', mm:58.44277, water:0, stoich:{Na:1,Cl:1}, group:'balance/chloride', order:10, rank:1, stock:true, purity:100, notes:'Main balance salt.'},
+    {code:'KCl', name:'Potassium chloride', mm:74.5513, water:0, stoich:{K:1,Cl:1}, group:'potassium', order:40, rank:1, stock:true, purity:100, notes:'Potassium source.'},
+    {code:'NaBr', name:'Sodium bromide', mm:102.89377, water:0, stoich:{Na:1,Br:1}, group:'bromide', order:45, rank:1, stock:true, purity:100, notes:'Use when KBr is not in stock.'},
+    {code:'NaBr.2H2O', name:'Sodium bromide dihydrate', mm:138.92433, water:2, stoich:{Na:1,Br:1}, group:'bromide', order:45, rank:2, stock:false, purity:100, notes:'Hydrate alternative; weigh more than anhydrous NaBr.'},
+    {code:'KBr', name:'Potassium bromide', mm:119.0023, water:0, stoich:{K:1,Br:1}, group:'bromide', order:45, rank:3, stock:false, purity:100, notes:'Bromide source; affects K balance.'},
+    {code:'CaBr2.2H2O', name:'Calcium bromide dihydrate', mm:235.91756, water:2, stoich:{Ca:1,Br:2}, group:'bromide', order:90, rank:4, stock:false, purity:100, notes:'Bromide alternative; affects Ca balance.'},
+    {code:'NaI', name:'Sodium iodide', mm:149.89424, water:0, stoich:{Na:1,I:1}, group:'iodide', order:45, rank:1, stock:true, purity:100, notes:'Small masses; consider stock solution.'},
+    {code:'KI', name:'Potassium iodide', mm:166.00277, water:0, stoich:{K:1,I:1}, group:'iodide', order:45, rank:2, stock:false, purity:100, notes:'Iodide alternative; affects K balance.'},
+    {code:'Na2SO4', name:'Sodium sulfate', mm:142.04214, water:0, stoich:{Na:2,SO4:1}, group:'sulfate', order:20, rank:1, stock:true, purity:100, notes:'Sulfate source; add before Ca/Sr.'},
+    {code:'Na2SO4.10H2O', name:'Sodium sulfate decahydrate', mm:322.19494, water:10, stoich:{Na:2,SO4:1}, group:'sulfate', order:20, rank:2, stock:false, purity:100, notes:'Hydrate alternative.'},
+    {code:'MgSO4.7H2O', name:'Magnesium sulfate heptahydrate', mm:246.47456, water:7, stoich:{Mg:1,SO4:1}, group:'sulfate', order:70, rank:3, stock:false, purity:100, notes:'Affects Mg and sulfate together.'},
+    {code:'MgCl2.6H2O', name:'Magnesium chloride hexahydrate', mm:203.30268, water:6, stoich:{Mg:1,Cl:2}, group:'magnesium', order:70, rank:1, stock:true, purity:100, notes:'Magnesium source.'},
+    {code:'MgCl2', name:'Magnesium chloride anhydrous', mm:95.211, water:0, stoich:{Mg:1,Cl:2}, group:'magnesium', order:70, rank:2, stock:false, purity:100, notes:'Hygroscopic anhydrous alternative.'},
+    {code:'CaCl2.2H2O', name:'Calcium chloride dihydrate', mm:147.01456, water:2, stoich:{Ca:1,Cl:2}, group:'calcium', order:100, rank:1, stock:true, purity:100, notes:'Calcium source; add late/last.'},
+    {code:'CaCl2', name:'Calcium chloride anhydrous', mm:110.984, water:0, stoich:{Ca:1,Cl:2}, group:'calcium', order:100, rank:2, stock:false, purity:100, notes:'Exothermic, hygroscopic alternative.'},
+    {code:'SrCl2.6H2O', name:'Strontium chloride hexahydrate', mm:266.617, water:6, stoich:{Sr:1,Cl:2}, group:'strontium', order:90, rank:1, stock:true, purity:100, notes:'Strontium source.'},
+    {code:'SrCl2', name:'Strontium chloride anhydrous', mm:158.526, water:0, stoich:{Sr:1,Cl:2}, group:'strontium', order:90, rank:2, stock:false, purity:100, notes:'Anhydrous alternative.'},
+    {code:'BaCl2.2H2O', name:'Barium chloride dihydrate', mm:244.26356, water:2, stoich:{Ba:1,Cl:2}, group:'barium', order:95, rank:1, stock:false, purity:100, notes:'Toxic; use only with approved controls.'},
+    {code:'LiCl', name:'Lithium chloride', mm:42.394, water:0, stoich:{Li:1,Cl:1}, group:'lithium', order:35, rank:1, stock:false, purity:100, notes:'Lithium source.'},
+    {code:'NH4Cl', name:'Ammonium chloride', mm:53.49146, water:0, stoich:{NH4:1,Cl:1}, group:'ammonium', order:50, rank:1, stock:false, purity:100, notes:'Ammonium source; pH dependent.'},
+    {code:'NaF', name:'Sodium fluoride', mm:41.98817, water:0, stoich:{Na:1,F:1}, group:'fluoride', order:45, rank:1, stock:false, purity:100, notes:'Fluoride source; toxic controls.'},
+    {code:'KF', name:'Potassium fluoride', mm:58.0967, water:0, stoich:{K:1,F:1}, group:'fluoride', order:45, rank:2, stock:false, purity:100, notes:'Fluoride alternative.'},
+    {code:'NaNO3', name:'Sodium nitrate', mm:84.99467, water:0, stoich:{Na:1,NO3:1}, group:'nitrate', order:45, rank:1, stock:false, purity:100, notes:'Nitrate source.'},
+    {code:'KNO3', name:'Potassium nitrate', mm:101.1032, water:0, stoich:{K:1,NO3:1}, group:'nitrate', order:45, rank:2, stock:false, purity:100, notes:'Nitrate alternative.'},
+    {code:'NaNO2', name:'Sodium nitrite', mm:68.99527, water:0, stoich:{Na:1,NO2:1}, group:'nitrite', order:45, rank:1, stock:false, purity:100, notes:'Nitrite source.'},
+    {code:'NaHCO3', name:'Sodium bicarbonate', mm:84.00661, water:0, stoich:{Na:1,HCO3:1}, group:'alkalinity', order:25, rank:1, stock:false, purity:100, notes:'Bicarbonate source; carbonate scaling risk.'},
+    {code:'KHCO3', name:'Potassium bicarbonate', mm:100.11514, water:0, stoich:{K:1,HCO3:1}, group:'alkalinity', order:25, rank:2, stock:false, purity:100, notes:'Bicarbonate alternative; affects K.'},
+    {code:'Na2CO3', name:'Sodium carbonate', mm:105.98844, water:0, stoich:{Na:2,CO3:1}, group:'carbonate', order:25, rank:1, stock:false, purity:100, notes:'Raises pH; carbonate scaling risk.'},
+    {code:'Na3PO4.12H2O', name:'Trisodium phosphate dodecahydrate', mm:380.124, water:12, stoich:{Na:3,PO4:1}, group:'phosphate', order:25, rank:1, stock:false, purity:100, notes:'Phosphate source; precipitation risk.'},
+    {code:'Na2HPO4', name:'Disodium hydrogen phosphate', mm:141.95884, water:0, stoich:{Na:2,PO4:1}, group:'phosphate', order:25, rank:2, stock:false, purity:100, notes:'Simplified as PO4 for mass balance only.'},
+    {code:'Na2S.9H2O', name:'Sodium sulfide nonahydrate', mm:240.182, water:9, stoich:{Na:2,S:1}, group:'sulfide', order:25, rank:1, stock:false, purity:100, notes:'Redox/pH dependent; use caution.'},
+    {code:'H3BO3', name:'Boric acid', mm:61.83302, water:0, stoich:{B:1}, group:'boron', order:25, rank:1, stock:false, purity:100, notes:'Boron source; neutral.'},
+    {code:'Na2B4O7.10H2O', name:'Borax decahydrate', mm:381.37214, water:10, stoich:{Na:2,B:4}, group:'boron', order:25, rank:2, stock:false, purity:100, notes:'Boron alternative; changes Na/pH.'},
+    {code:'Na2SiO3.9H2O', name:'Sodium silicate nonahydrate', mm:284.2008, water:9, stoich:{Na:2,SiO2:1}, group:'silica', order:25, rank:1, stock:false, purity:100, notes:'Silica source; pH/solubility caution.'},
+    {code:'FeCl2.4H2O', name:'Iron(II) chloride tetrahydrate', mm:198.812, water:4, stoich:{Fe2:1,Cl:2}, group:'iron', order:60, rank:1, stock:false, purity:100, notes:'Ferrous source; redox sensitive.'},
+    {code:'FeCl3.6H2O', name:'Iron(III) chloride hexahydrate', mm:270.295, water:6, stoich:{Fe3:1,Cl:3}, group:'iron', order:60, rank:1, stock:false, purity:100, notes:'Ferric source; hydrolysis risk.'},
+    {code:'MnCl2.4H2O', name:'Manganese chloride tetrahydrate', mm:197.905, water:4, stoich:{Mn:1,Cl:2}, group:'manganese', order:60, rank:1, stock:false, purity:100, notes:'Trace source.'},
+    {code:'ZnCl2', name:'Zinc chloride', mm:136.286, water:0, stoich:{Zn:1,Cl:2}, group:'zinc', order:60, rank:1, stock:false, purity:100, notes:'Trace source; hygroscopic.'},
+    {code:'CuCl2.2H2O', name:'Copper chloride dihydrate', mm:170.48256, water:2, stoich:{Cu:1,Cl:2}, group:'copper', order:60, rank:1, stock:false, purity:100, notes:'Trace source.'}
+  ];
+
+  const UNITS = ['mg/L', 'ug/L', 'g/L', 'mmol/L', 'meq/L', 'mg/L as CaCO3', 'mg/L as N', 'mg/L as P', 'mg/L as S', 'mg/L as SiO2'];
+  const SOLVE_ORDER = ['F','NO3','NO2','PO4','HCO3','CO3','SO4','S','Br','I','B','SiO2','Ba','Sr','Ca','Mg','Fe2','Fe3','Mn','Al','Zn','Cu','Ni','Co','Pb','Li','NH4','K'];
+  const SAMPLE_VALUES = {Na:'60613', K:'1565', Mg:'3018', Ca:'15375', Sr:'473', SO4:'1070', Cl:'130808', Br:'776', I:'4'};
+
+  let state = makeDefaultState();
+  let lastCalc = null;
+
+  function makeDefaultState() {
+    const st = {
+      volumeL: 3.0,
+      balanceIon: 'Cl',
+      temperatureC: 25.0,
+      pH: 6.39,
+      testNames: ['Test 1','Test 2','Test 3'],
+      testInclude: [true, true, true],
+      units: {},
+      includeSpecies: {},
+      waterValues: {},
+      stock: {},
+      purity: {},
+      choices: {}
+    };
+    for (const sp of SPECIES) {
+      st.units[sp.code] = 'mg/L';
+      st.includeSpecies[sp.code] = !!sp.include;
+      st.waterValues[sp.code] = ['', '', ''];
+    }
+    for (const [code, value] of Object.entries(SAMPLE_VALUES)) st.waterValues[code][0] = value;
+    for (const salt of SALTS) {
+      st.stock[salt.code] = !!salt.stock;
+      st.purity[salt.code] = salt.purity || 100;
+    }
+    st.choices.Br = 'NaBr';
+    st.choices.I = 'NaI';
+    st.choices.SO4 = 'Na2SO4';
+    st.choices.Mg = 'MgCl2.6H2O';
+    st.choices.Ca = 'CaCl2.2H2O';
+    st.choices.Sr = 'SrCl2.6H2O';
+    st.choices.K = 'KCl';
+    return st;
+  }
+
+  function ensureState() {
+    if (!Array.isArray(state.testNames) || !state.testNames.length) state.testNames = ['Test 1','Test 2','Test 3'];
+    if (!Array.isArray(state.testInclude)) state.testInclude = state.testNames.map(() => true);
+    while (state.testInclude.length < state.testNames.length) state.testInclude.push(true);
+    for (const sp of SPECIES) {
+      if (!state.units) state.units = {};
+      if (!state.includeSpecies) state.includeSpecies = {};
+      if (!state.waterValues) state.waterValues = {};
+      if (!(sp.code in state.units)) state.units[sp.code] = 'mg/L';
+      if (!(sp.code in state.includeSpecies)) state.includeSpecies[sp.code] = !!sp.include;
+      if (!Array.isArray(state.waterValues[sp.code])) state.waterValues[sp.code] = [];
+      while (state.waterValues[sp.code].length < state.testNames.length) state.waterValues[sp.code].push('');
+      if (state.waterValues[sp.code].length > state.testNames.length) state.waterValues[sp.code] = state.waterValues[sp.code].slice(0, state.testNames.length);
+    }
+    if (!state.stock) state.stock = {};
+    if (!state.purity) state.purity = {};
+    if (!state.choices) state.choices = {};
+    for (const salt of SALTS) {
+      if (!(salt.code in state.stock)) state.stock[salt.code] = !!salt.stock;
+      if (!(salt.code in state.purity)) state.purity[salt.code] = salt.purity || 100;
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const el = document.getElementById('autosaveStatus');
+      if (el) el.textContent = 'Autosaved locally at ' + new Date().toLocaleTimeString();
+    } catch (e) {}
+  }
+
+  function loadStateFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) state = Object.assign(makeDefaultState(), JSON.parse(raw));
+    } catch (e) {
+      state = makeDefaultState();
+    }
+    ensureState();
+  }
+
+  function fmt(x, digits=3) {
+    if (x === null || x === undefined || !isFinite(x)) return '';
+    const ax = Math.abs(x);
+    if (ax > 0 && ax < 0.001) return x.toExponential(3);
+    return Number(x).toLocaleString(undefined, {maximumFractionDigits: digits, minimumFractionDigits: 0});
+  }
+  function fmtFixed(x, digits=3) {
+    if (x === null || x === undefined || !isFinite(x)) return '';
+    return Number(x).toLocaleString(undefined, {maximumFractionDigits: digits, minimumFractionDigits: digits});
+  }
+  function speciesByCode(code) { return SPECIES.find(s => s.code === code); }
+  function saltByCode(code) { return SALTS.find(s => s.code === code); }
+  function stoichText(salt) { return Object.entries(salt.stoich).map(([k,v]) => v === 1 ? k : `${v}${k}`).join(' + '); }
+  function escapeHtml(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function parseLabNumber(value) {
+    if (value === null || value === undefined) return null;
+    let s = String(value).trim();
+    if (!s) return null;
+    const upper = s.toUpperCase();
+    if (['ND','N/D','NIL','NA','N/A','-'].includes(upper)) return 0;
+    let half = false;
+    if (s.startsWith('<')) { half = true; s = s.slice(1).trim(); }
+    s = s.replace(/,/g, '');
+    const n = Number(s);
+    if (!isFinite(n)) return null;
+    return half ? n / 2 : n;
+  }
+
+  function convertToMgL(value, unit, sp) {
+    if (value === null || value === undefined) return null;
+    if (sp.mm === null || sp.mm === undefined) return value;
+    switch (unit) {
+      case 'mg/L': return value;
+      case 'ug/L': return value / 1000;
+      case 'g/L': return value * 1000;
+      case 'mmol/L': return value * sp.mm;
+      case 'meq/L':
+        if (!sp.charge) return null;
+        return value * sp.mm / Math.abs(sp.charge);
+      case 'mg/L as CaCO3':
+        if (!sp.charge) return null;
+        return (value / EW_CACO3) * sp.mm / Math.abs(sp.charge);
+      case 'mg/L as N': return value * sp.mm / ATOMIC_N;
+      case 'mg/L as P': return value * sp.mm / ATOMIC_P;
+      case 'mg/L as S': return value * sp.mm / ATOMIC_S;
+      case 'mg/L as SiO2': return sp.code === 'SiO2' ? value : value * sp.mm / MOLAR_SIO2;
+      default: return value;
+    }
+  }
+
+  function computeAverages() {
+    const rows = [];
+    const avg = {};
+    const targetMolL = {};
+    let cations = 0, anions = 0, ionTds = 0;
+    for (const sp of SPECIES) {
+      const vals = [];
+      const rawVals = state.waterValues[sp.code] || [];
+      for (let i = 0; i < state.testNames.length; i++) {
+        if (!state.testInclude[i]) continue;
+        const parsed = parseLabNumber(rawVals[i]);
+        if (parsed === null) continue;
+        const mgL = convertToMgL(parsed, state.units[sp.code], sp);
+        if (mgL === null || !isFinite(mgL)) continue;
+        vals.push(mgL);
+      }
+      if (vals.length) {
+        const mean = vals.reduce((a,b)=>a+b,0) / vals.length;
+        const min = Math.min(...vals), max = Math.max(...vals);
+        const sd = vals.length > 1 ? Math.sqrt(vals.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(vals.length-1)) : 0;
+        avg[sp.code] = mean;
+        if (sp.mm && state.includeSpecies[sp.code]) {
+          targetMolL[sp.code] = mean / 1000 / sp.mm;
+          ionTds += mean;
+          if (sp.charge > 0) cations += targetMolL[sp.code] * sp.charge * 1000;
+          if (sp.charge < 0) anions += targetMolL[sp.code] * Math.abs(sp.charge) * 1000;
+        }
+        rows.push({code:sp.code, name:sp.name, unit:state.units[sp.code], n:vals.length, avg_mg_L:mean, sd_mg_L:sd, min_mg_L:min, max_mg_L:max, include:state.includeSpecies[sp.code], role:sp.role});
+      }
+    }
+    const cbeAvg = (cations + anions) > 0 ? 100 * (cations - anions) / ((cations + anions) / 2) : 0;
+    const cbeCommon = (cations + anions) > 0 ? 100 * (cations - anions) / (cations + anions) : 0;
+    return {rows, avg, targetMolL, cations, anions, cbeAvg, cbeCommon, ionTds};
+  }
+
+  function candidatesForSpecies(code) {
+    return SALTS.filter(s => Object.prototype.hasOwnProperty.call(s.stoich, code)).sort((a,b) => (a.rank - b.rank) || (a.order - b.order) || a.code.localeCompare(b.code));
+  }
+
+  function chooseSaltForSpecies(code, warnings) {
+    const candidates = candidatesForSpecies(code);
+    if (!candidates.length) return null;
+    const current = state.choices[code];
+    if (current) {
+      const s = saltByCode(current);
+      if (s && Object.prototype.hasOwnProperty.call(s.stoich, code) && state.stock[s.code]) return s;
+    }
+    const inStock = candidates.filter(s => state.stock[s.code]).sort((a,b)=> (a.rank-b.rank) || (a.order-b.order));
+    if (inStock.length) {
+      state.choices[code] = inStock[0].code;
+      return inStock[0];
+    }
+    if (warnings) warnings.push(`No in-stock salt candidate is available for ${code}. Candidates exist but are marked out of stock: ${candidates.map(s=>s.code).join(', ')}.`);
+    return null;
+  }
+
+  function calculateRecipe() {
+    ensureState();
+    const avgData = computeAverages();
+    const activeCodes = Object.keys(avgData.targetMolL).filter(c => avgData.avg[c] > 0 && state.includeSpecies[c]);
+    const warnings = [];
+    const saltMolesL = {};
+    const suppliedMolL = {};
+    for (const sp of SPECIES) suppliedMolL[sp.code] = 0;
+
+    function addSalt(saltCode, molesL) {
+      if (!molesL || molesL <= 0) return;
+      const salt = saltByCode(saltCode);
+      if (!salt) return;
+      saltMolesL[saltCode] = (saltMolesL[saltCode] || 0) + molesL;
+      for (const [ion, coeff] of Object.entries(salt.stoich)) suppliedMolL[ion] = (suppliedMolL[ion] || 0) + molesL * coeff;
+    }
+
+    const ordered = [];
+    for (const c of SOLVE_ORDER) if (activeCodes.includes(c) && !['Na','Cl'].includes(c)) ordered.push(c);
+    for (const c of activeCodes) if (!ordered.includes(c) && !['Na','Cl'].includes(c)) ordered.push(c);
+
+    for (const code of ordered) {
+      const sp = speciesByCode(code);
+      if (!sp || !sp.mm) continue;
+      const target = avgData.targetMolL[code] || 0;
+      const current = suppliedMolL[code] || 0;
+      const deficit = target - current;
+      if (deficit > 1e-10) {
+        const salt = chooseSaltForSpecies(code, warnings);
+        if (!salt) continue;
+        const coeff = salt.stoich[code];
+        if (!coeff || coeff <= 0) {
+          warnings.push(`Selected salt ${salt.code} cannot supply ${code}.`);
+          continue;
+        }
+        addSalt(salt.code, deficit / coeff);
+      } else if (deficit < -1e-9) {
+        const overMgL = -deficit * sp.mm * 1000;
+        warnings.push(`${code} is oversupplied by earlier selected salts before its own salt is added (${fmt(overMgL, 3)} mg/L high). Consider a different salt choice.`);
+      }
+    }
+
+    let balanceIon = state.balanceIon === 'auto' ? ((avgData.targetMolL.Cl || 0) > 0 ? 'Cl' : 'Na') : state.balanceIon;
+    if (!['Na','Cl'].includes(balanceIon)) balanceIon = 'Cl';
+    const balanceTarget = avgData.targetMolL[balanceIon] || 0;
+    if (balanceTarget <= 0) {
+      warnings.push(`Balance ion ${balanceIon} has no positive target value. NaCl balance step was skipped.`);
+    } else if (!state.stock.NaCl) {
+      warnings.push('NaCl is not marked in stock, so the final Na/Cl balance step could not be completed. Mark NaCl in stock or add a valid balance salt strategy.');
+    } else {
+      const deficit = balanceTarget - (suppliedMolL[balanceIon] || 0);
+      if (deficit > 1e-10) {
+        addSalt('NaCl', deficit);
+      } else if (deficit < -1e-9) {
+        const sp = speciesByCode(balanceIon);
+        const overMgL = sp ? -deficit * sp.mm * 1000 : -deficit;
+        warnings.push(`NaCl would need to be negative to match ${balanceIon}. The selected non-NaCl salts already oversupply ${balanceIon} by ${fmt(overMgL,3)} mg/L.`);
+      }
+    }
+
+    const recipeRows = Object.entries(saltMolesL).map(([saltCode, molL]) => {
+      const salt = saltByCode(saltCode);
+      const purityPct = Number(state.purity[saltCode]) || 100;
+      const purityFrac = purityPct > 0 ? purityPct / 100 : 1;
+      if (purityFrac <= 0 || purityFrac > 1.5) warnings.push(`Check purity for ${saltCode}: ${purityPct}% looks unusual.`);
+      const pureMassGL = molL * salt.mm;
+      const weighMassGL = pureMassGL / purityFrac;
+      const hydrationWaterGL = molL * salt.water * WATER_MOLAR_MASS;
+      const dryIonEquivGL = pureMassGL - hydrationWaterGL;
+      return {
+        mix_order:salt.order,
+        salt:salt.code,
+        name:salt.name,
+        stoich:stoichText(salt),
+        moles_per_L:molL,
+        purity_percent:purityPct,
+        mass_g_per_L:weighMassGL,
+        mass_g_batch:weighMassGL * state.volumeL,
+        pure_salt_g_per_L:pureMassGL,
+        hydration_water_g_per_L:hydrationWaterGL,
+        dry_ion_equiv_g_per_L:dryIonEquivGL,
+        notes:salt.notes
+      };
+    }).sort((a,b)=> (a.mix_order - b.mix_order) || a.salt.localeCompare(b.salt));
+
+    const ionRows = [];
+    let suppliedTds = 0;
+    for (const code of activeCodes) {
+      const sp = speciesByCode(code);
+      if (!sp || !sp.mm) continue;
+      const targetMgL = avgData.avg[code] || 0;
+      const suppliedMgL = (suppliedMolL[code] || 0) * sp.mm * 1000;
+      suppliedTds += suppliedMgL;
+      ionRows.push({
+        ion:code,
+        name:sp.name,
+        target_mg_L:targetMgL,
+        supplied_mg_L:suppliedMgL,
+        difference_mg_L:suppliedMgL - targetMgL,
+        difference_percent: targetMgL ? 100 * (suppliedMgL - targetMgL) / targetMgL : 0,
+        charge:sp.charge
+      });
+    }
+
+    let catSup = 0, anSup = 0;
+    for (const row of ionRows) {
+      const sp = speciesByCode(row.ion);
+      if (!sp || !sp.charge || !sp.mm) continue;
+      const molL = row.supplied_mg_L / 1000 / sp.mm;
+      if (sp.charge > 0) catSup += molL * sp.charge * 1000;
+      if (sp.charge < 0) anSup += molL * Math.abs(sp.charge) * 1000;
+    }
+    const chargeBalanceSupplied = (catSup + anSup) > 0 ? 100 * (catSup - anSup) / ((catSup + anSup)/2) : 0;
+
+    if (Math.abs(avgData.cbeAvg) > 0.2) warnings.push(`The averaged target analysis is not charge-balanced. Target CBE is ${fmtFixed(avgData.cbeAvg, 4)}% using the average-denominator method. A neutral-salt recipe cannot match every ion exactly; ${balanceIon} is being used as the balance mode.`);
+    const avg = avgData.avg;
+    if ((avg.SO4 || 0) > 0 && ((avg.Sr || 0) > 0 || (avg.Ba || 0) > 0 || (avg.Ca || 0) > 5000)) warnings.push('Sulfate is present with Ca/Sr/Ba. Check gypsum/celestite/barite scaling with PHREEQC/Pitzer and run a small pilot batch.');
+    if (((avg.HCO3 || 0) > 0 || (avg.CO3 || 0) > 0 || (avg.PO4 || 0) > 0) && ((avg.Ca || 0) > 0 || (avg.Sr || 0) > 0 || (avg.Ba || 0) > 0)) warnings.push('Bicarbonate/carbonate/phosphate with Ca/Sr/Ba can precipitate. Consider excluding alkalinity from the salt recipe or dosing last under pH control.');
+    for (const r of recipeRows) if (r.mass_g_batch > 0 && r.mass_g_batch < 0.05) warnings.push(`${r.salt} mass is only ${fmtFixed(r.mass_g_batch, 4)} g for the batch. Use a stock solution or a microbalance for accuracy.`);
+
+    const summary = {
+      volume_L: Number(state.volumeL) || 0,
+      balance_ion: balanceIon,
+      target_cation_meq_L: avgData.cations,
+      target_anion_meq_L: avgData.anions,
+      target_cbe_percent_avg_denom: avgData.cbeAvg,
+      supplied_cation_meq_L: catSup,
+      supplied_anion_meq_L: anSup,
+      supplied_cbe_percent_avg_denom: chargeBalanceSupplied,
+      target_ion_TDS_mg_L: avgData.ionTds,
+      supplied_ion_TDS_mg_L: suppliedTds,
+      total_weigh_mass_g_per_L: recipeRows.reduce((a,r)=>a+r.mass_g_per_L,0),
+      total_weigh_mass_g_batch: recipeRows.reduce((a,r)=>a+r.mass_g_batch,0),
+      hydration_water_g_per_L: recipeRows.reduce((a,r)=>a+r.hydration_water_g_per_L,0),
+      dry_ion_equiv_g_per_L: recipeRows.reduce((a,r)=>a+r.dry_ion_equiv_g_per_L,0)
+    };
+
+    return {avgData, recipeRows, ionRows, summary, warnings, saltMolesL, suppliedMolL};
+  }
+
+  function renderSetup() {
+    document.getElementById('volumeL').value = state.volumeL;
+    document.getElementById('balanceIon').value = state.balanceIon;
+    document.getElementById('temperatureC').value = state.temperatureC;
+    document.getElementById('pH').value = state.pH;
+  }
+
+  function renderTestControls() {
+    const el = document.getElementById('testControls');
+    el.innerHTML = state.testNames.map((name, i) => `
+      <span class="nowrap">
+        <input type="checkbox" id="useTest${i}" ${state.testInclude[i] ? 'checked' : ''} />
+        <input id="testName${i}" value="${escapeHtml(name)}" style="width:110px" />
+      </span>`).join('');
+    state.testNames.forEach((_, i) => {
+      document.getElementById(`useTest${i}`).addEventListener('change', e => { state.testInclude[i] = e.target.checked; saveState(); computeAndRender(); });
+      document.getElementById(`testName${i}`).addEventListener('input', e => { state.testNames[i] = e.target.value; saveState(); });
+    });
+  }
+
+  function renderWaterTable() {
+    const table = document.getElementById('waterTable');
+    let html = '<thead><tr><th>Use</th><th>Species</th><th>Name</th><th>Unit</th>';
+    for (let i = 0; i < state.testNames.length; i++) html += `<th class="right">${escapeHtml(state.testNames[i])}</th>`;
+    html += '<th class="right">Average mg/L</th><th class="right">n</th><th>Notes</th></tr></thead><tbody>';
+    for (const sp of SPECIES) {
+      const cls = state.includeSpecies[sp.code] ? '' : 'row-muted';
+      html += `<tr class="${cls}">
+        <td class="center"><input type="checkbox" data-inc="${sp.code}" ${state.includeSpecies[sp.code] ? 'checked' : ''} ${sp.role === 'report' ? '' : ''}></td>
+        <td class="code">${sp.code}</td>
+        <td>${escapeHtml(sp.name)} <span class="muted">${escapeHtml(sp.formula || '')}</span></td>
+        <td><select data-unit="${sp.code}">${UNITS.map(u => `<option value="${u}" ${state.units[sp.code] === u ? 'selected' : ''}>${u}</option>`).join('')}</select></td>`;
+      for (let i = 0; i < state.testNames.length; i++) {
+        html += `<td><input class="numeric wide-input" data-val="${sp.code}" data-test="${i}" value="${escapeHtml(state.waterValues[sp.code][i] || '')}"></td>`;
+      }
+      html += `<td class="right" id="avg_${sp.code}"></td><td class="right" id="n_${sp.code}"></td><td class="muted small">${escapeHtml(sp.notes)}</td></tr>`;
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+
+    table.querySelectorAll('[data-inc]').forEach(el => el.addEventListener('change', e => {
+      state.includeSpecies[e.target.dataset.inc] = e.target.checked;
+      saveState(); renderWaterTable(); computeAndRender();
+    }));
+    table.querySelectorAll('[data-unit]').forEach(el => el.addEventListener('change', e => {
+      state.units[e.target.dataset.unit] = e.target.value;
+      saveState(); computeAndRender();
+    }));
+    table.querySelectorAll('[data-val]').forEach(el => el.addEventListener('input', e => {
+      const code = e.target.dataset.val; const idx = Number(e.target.dataset.test);
+      state.waterValues[code][idx] = e.target.value;
+      saveState(); computeAndRender(false);
+    }));
+  }
+
+  function renderStockTable() {
+    const filter = (document.getElementById('stockSearch')?.value || '').toLowerCase();
+    const table = document.getElementById('stockTable');
+    const rows = SALTS.filter(s => !filter || s.code.toLowerCase().includes(filter) || s.name.toLowerCase().includes(filter) || s.group.toLowerCase().includes(filter) || stoichText(s).toLowerCase().includes(filter));
+    let html = '<thead><tr><th>In stock</th><th>Salt</th><th>Name</th><th>Supplies</th><th>Group</th><th class="right">Purity %</th><th>Notes</th></tr></thead><tbody>';
+    for (const salt of rows) {
+      html += `<tr>
+        <td class="center"><input type="checkbox" data-stock="${salt.code}" ${state.stock[salt.code] ? 'checked' : ''}></td>
+        <td class="code">${salt.code}</td>
+        <td>${escapeHtml(salt.name)}</td>
+        <td class="code">${escapeHtml(stoichText(salt))}</td>
+        <td>${escapeHtml(salt.group)}</td>
+        <td><input class="numeric" style="width:80px" data-purity="${salt.code}" value="${escapeHtml(state.purity[salt.code])}"></td>
+        <td class="muted small">${escapeHtml(salt.notes)}</td>
+      </tr>`;
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+    table.querySelectorAll('[data-stock]').forEach(el => el.addEventListener('change', e => {
+      state.stock[e.target.dataset.stock] = e.target.checked;
+      saveState(); autoRepairChoices(); computeAndRender(); renderStockTable();
+    }));
+    table.querySelectorAll('[data-purity]').forEach(el => el.addEventListener('input', e => {
+      state.purity[e.target.dataset.purity] = e.target.value;
+      saveState(); computeAndRender(false);
+    }));
+  }
+
+  function autoRepairChoices() {
+    const avgData = computeAverages();
+    for (const code of Object.keys(avgData.targetMolL)) {
+      if (['Na','Cl'].includes(code)) continue;
+      const candidates = candidatesForSpecies(code);
+      if (!candidates.length) continue;
+      const current = saltByCode(state.choices[code]);
+      if (!current || !state.stock[current.code] || !Object.prototype.hasOwnProperty.call(current.stoich, code)) {
+        const first = candidates.filter(s => state.stock[s.code]).sort((a,b)=>a.rank-b.rank)[0];
+        if (first) state.choices[code] = first.code;
+      }
+    }
+  }
+
+  function renderChoicesTable(calc) {
+    const table = document.getElementById('choicesTable');
+    const avgData = calc ? calc.avgData : computeAverages();
+    const activeCodes = Object.keys(avgData.targetMolL).filter(c => avgData.avg[c] > 0 && state.includeSpecies[c] && !['Na','Cl'].includes(c));
+    let html = '<thead><tr><th>Target species</th><th class="right">Average mg/L</th><th>Selected salt</th><th>In-stock alternatives</th><th>Out-of-stock candidates</th></tr></thead><tbody>';
+    if (!activeCodes.length) html += '<tr><td colspan="5" class="muted">No non-Na/Cl measured species with positive average concentration yet.</td></tr>';
+    for (const code of activeCodes) {
+      const sp = speciesByCode(code);
+      const candidates = candidatesForSpecies(code);
+      const inStock = candidates.filter(s => state.stock[s.code]);
+      const outStock = candidates.filter(s => !state.stock[s.code]);
+      if (inStock.length && (!state.choices[code] || !state.stock[state.choices[code]])) state.choices[code] = inStock[0].code;
+      const selectOptions = inStock.map(s => `<option value="${s.code}" ${state.choices[code] === s.code ? 'selected' : ''}>${s.code} - ${s.name}</option>`).join('');
+      html += `<tr>
+        <td><span class="code">${code}</span> ${escapeHtml(sp.name)}</td>
+        <td class="right">${fmt(avgData.avg[code], 4)}</td>
+        <td>${inStock.length ? `<select class="choice-select" data-choice="${code}">${selectOptions}</select>` : '<span class="pill bad">No in-stock salt</span>'}</td>
+        <td>${inStock.length ? inStock.map(s => `<span class="pill good" title="${escapeHtml(s.notes)}">${s.code}</span>`).join(' ') : '<span class="muted">None</span>'}</td>
+        <td>${outStock.length ? outStock.map(s => `<span class="pill neutral" title="${escapeHtml(s.notes)}">${s.code}</span>`).join(' ') : '<span class="muted">None</span>'}</td>
+      </tr>`;
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+    table.querySelectorAll('[data-choice]').forEach(el => el.addEventListener('change', e => {
+      state.choices[e.target.dataset.choice] = e.target.value;
+      saveState(); computeAndRender();
+    }));
+  }
+
+  function renderSubstitutionGuidance(calc) {
+    const el = document.getElementById('substitutionGuidance');
+    const avgData = calc ? calc.avgData : computeAverages();
+    const activeCodes = Object.keys(avgData.targetMolL).filter(c => avgData.avg[c] > 0 && !['Na','Cl'].includes(c));
+    let html = '';
+    for (const code of activeCodes) {
+      const candidates = candidatesForSpecies(code);
+      if (!candidates.length) continue;
+      const selected = state.choices[code];
+      const inStock = candidates.filter(s => state.stock[s.code]).map(s=>s.code);
+      const outStock = candidates.filter(s => !state.stock[s.code]).map(s=>s.code);
+      html += `<div class="notice"><strong>${code}</strong>: selected <span class="pill ${selected ? 'good' : 'bad'}">${selected || 'none'}</span><br><span class="muted">In stock: ${inStock.join(', ') || 'none'}. Out of stock candidates: ${outStock.join(', ') || 'none'}.</span></div>`;
+    }
+    if (!html) html = '<p class="muted">Enter water-test values first. Alternatives will appear here.</p>';
+    el.innerHTML = html;
+  }
+
+  function updateAverageCells(avgData) {
+    for (const sp of SPECIES) {
+      const row = avgData.rows.find(r => r.code === sp.code);
+      const avgEl = document.getElementById(`avg_${sp.code}`);
+      const nEl = document.getElementById(`n_${sp.code}`);
+      if (avgEl) avgEl.textContent = row ? fmt(row.avg_mg_L, 4) : '';
+      if (nEl) nEl.textContent = row ? row.n : '';
+    }
+  }
+
+  function metricHtml(label, value, klass='neutral') {
+    return `<div class="metric ${klass}"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(value)}</div></div>`;
+  }
+
+  function renderMetrics(calc) {
+    const s = calc.summary;
+    const targetClass = Math.abs(s.target_cbe_percent_avg_denom) <= 0.2 ? 'good' : Math.abs(s.target_cbe_percent_avg_denom) <= 1 ? 'warn' : 'bad';
+    document.getElementById('statusMetrics').innerHTML =
+      metricHtml('Volume', `${fmt(s.volume_L,3)} L`) +
+      metricHtml('Balance mode', s.balance_ion) +
+      metricHtml('Target CBE', `${fmtFixed(s.target_cbe_percent_avg_denom,4)}%`, targetClass) +
+      metricHtml('Total to weigh', `${fmtFixed(s.total_weigh_mass_g_batch,3)} g`);
+
+    document.getElementById('waterMetrics').innerHTML =
+      metricHtml('Cations', `${fmtFixed(s.target_cation_meq_L,3)} meq/L`) +
+      metricHtml('Anions', `${fmtFixed(s.target_anion_meq_L,3)} meq/L`) +
+      metricHtml('Target CBE', `${fmtFixed(s.target_cbe_percent_avg_denom,4)}%`, targetClass) +
+      metricHtml('Ion TDS', `${fmtFixed(s.target_ion_TDS_mg_L,1)} mg/L`);
+
+    document.getElementById('resultMetrics').innerHTML =
+      metricHtml('Total batch mass', `${fmtFixed(s.total_weigh_mass_g_batch,3)} g`) +
+      metricHtml('g/L to weigh', `${fmtFixed(s.total_weigh_mass_g_per_L,3)} g/L`) +
+      metricHtml('Dry ion equiv.', `${fmtFixed(s.dry_ion_equiv_g_per_L,3)} g/L`) +
+      metricHtml('Supplied CBE', `${fmtFixed(s.supplied_cbe_percent_avg_denom,6)}%`, Math.abs(s.supplied_cbe_percent_avg_denom) < 0.001 ? 'good' : 'warn');
+
+    const deficit = s.target_cation_meq_L - s.target_anion_meq_L;
+    const asCl = deficit < 0 ? Math.abs(deficit) * speciesByCode('Cl').mm : 0;
+    const asNa = deficit > 0 ? Math.abs(deficit) * speciesByCode('Na').mm : 0;
+    document.getElementById('chargeDetails').innerHTML = `Target charge balance uses included ionic species only.<br>
+      Cations = <strong>${fmtFixed(s.target_cation_meq_L,6)}</strong> meq/L; anions = <strong>${fmtFixed(s.target_anion_meq_L,6)}</strong> meq/L; difference = <strong>${fmtFixed(deficit,6)}</strong> meq/L.<br>
+      ${deficit < 0 ? `Target has excess anions equivalent to about <strong>${fmtFixed(asCl,3)} mg/L Cl-</strong>.` : deficit > 0 ? `Target has excess cations equivalent to about <strong>${fmtFixed(asNa,3)} mg/L Na+</strong>.` : 'Target is exactly charge-balanced within rounding.'}`;
+  }
+
+  function renderWarnings(calc) {
+    const html = calc.warnings.length ? calc.warnings.map(w => `<div class="notice warn">${escapeHtml(w)}</div>`).join('') : '<div class="notice good">No major formulation warnings from the stoichiometry check.</div>';
+    document.getElementById('setupWarnings').innerHTML = html;
+    document.getElementById('resultWarnings').innerHTML = html;
+  }
+
+  function renderRecipeTable(calc) {
+    const table = document.getElementById('recipeTable');
+    let html = '<thead><tr><th>Order</th><th>Salt</th><th>Name</th><th>Supplies</th><th class="right">g/L to weigh</th><th class="right">g for batch</th><th class="right">Hydration water g/L</th><th>Notes</th></tr></thead><tbody>';
+    if (!calc.recipeRows.length) html += '<tr><td colspan="8" class="muted">No recipe calculated yet.</td></tr>';
+    for (let i = 0; i < calc.recipeRows.length; i++) {
+      const r = calc.recipeRows[i];
+      html += `<tr><td class="right">${i+1}</td><td class="code">${r.salt}</td><td>${escapeHtml(r.name)}</td><td class="code">${escapeHtml(r.stoich)}</td><td class="right">${fmtFixed(r.mass_g_per_L,6)}</td><td class="right"><strong>${fmtFixed(r.mass_g_batch,6)}</strong></td><td class="right">${fmtFixed(r.hydration_water_g_per_L,6)}</td><td class="muted small">${escapeHtml(r.notes)}</td></tr>`;
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+  }
+
+  function renderIonFitTable(calc) {
+    const table = document.getElementById('ionFitTable');
+    let html = '<thead><tr><th>Ion</th><th>Name</th><th class="right">Target mg/L</th><th class="right">Supplied mg/L</th><th class="right">Difference mg/L</th><th class="right">Difference %</th></tr></thead><tbody>';
+    if (!calc.ionRows.length) html += '<tr><td colspan="6" class="muted">No ion check yet.</td></tr>';
+    for (const r of calc.ionRows) {
+      const cls = Math.abs(r.difference_mg_L) < Math.max(0.01, r.target_mg_L * 0.0001) ? 'good' : 'warn';
+      html += `<tr><td class="code">${r.ion}</td><td>${escapeHtml(r.name)}</td><td class="right">${fmtFixed(r.target_mg_L,4)}</td><td class="right">${fmtFixed(r.supplied_mg_L,4)}</td><td class="right"><span class="pill ${cls}">${fmtFixed(r.difference_mg_L,4)}</span></td><td class="right">${fmtFixed(r.difference_percent,5)}</td></tr>`;
+    }
+    html += '</tbody>';
+    table.innerHTML = html;
+  }
+
+  function csvEscape(v) {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function rowsToCsv(rows) {
+    if (!rows.length) return '';
+    const keys = Object.keys(rows[0]);
+    return keys.join(',') + '\n' + rows.map(r => keys.map(k => csvEscape(r[k])).join(',')).join('\n');
+  }
+  function downloadText(filename, text, type='text/plain') {
+    const blob = new Blob([text], {type});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 500);
+  }
+
+  function candidateRows(calc) {
+    const avgData = calc ? calc.avgData : computeAverages();
+    const activeCodes = Object.keys(avgData.targetMolL).filter(c => avgData.avg[c] > 0 && state.includeSpecies[c] && !['Na','Cl'].includes(c));
+    const rows = [];
+    for (const code of activeCodes) {
+      for (const s of candidatesForSpecies(code)) rows.push({species:code, species_name:speciesByCode(code).name, salt:s.code, salt_name:s.name, in_stock:state.stock[s.code] ? 'yes' : 'no', purity_percent:state.purity[s.code], selected:state.choices[code] === s.code ? 'yes' : 'no', supplies:stoichText(s), notes:s.notes});
+    }
+    return rows;
+  }
+
+  function stockRows() {
+    return SALTS.map(s => ({salt:s.code, name:s.name, in_stock:state.stock[s.code] ? 'yes' : 'no', purity_percent:state.purity[s.code], supplies:stoichText(s), group:s.group, notes:s.notes}));
+  }
+
+  function generateReport(calc) {
+    const lines = [];
+    const s = calc.summary;
+    lines.push('# Synthetic Brine Recipe Report');
+    lines.push('');
+    lines.push(`Generated: ${new Date().toLocaleString()}`);
+    lines.push(`Final volume: ${fmtFixed(s.volume_L, 3)} L`);
+    lines.push(`Balance mode: ${s.balance_ion}`);
+    lines.push(`Temperature for report: ${state.temperatureC} °C`);
+    lines.push(`pH for report: ${state.pH}`);
+    lines.push('');
+    lines.push('## Charge balance of averaged target');
+    lines.push(`Cations: ${fmtFixed(s.target_cation_meq_L, 6)} meq/L`);
+    lines.push(`Anions: ${fmtFixed(s.target_anion_meq_L, 6)} meq/L`);
+    lines.push(`Charge-balance error: ${fmtFixed(s.target_cbe_percent_avg_denom, 6)} % using average denominator`);
+    lines.push('');
+    if (calc.warnings.length) {
+      lines.push('## Warnings');
+      for (const w of calc.warnings) lines.push(`- ${w}`);
+      lines.push('');
+    }
+    lines.push('## Salt recipe');
+    lines.push('| Order | Salt | g/L to weigh | g for batch | Hydration water g/L | Notes |');
+    lines.push('|---:|---|---:|---:|---:|---|');
+    calc.recipeRows.forEach((r, i) => lines.push(`| ${i+1} | ${r.salt} | ${r.mass_g_per_L.toFixed(6)} | ${r.mass_g_batch.toFixed(6)} | ${r.hydration_water_g_per_L.toFixed(6)} | ${r.notes.replace(/\|/g,'/')} |`));
+    lines.push('');
+    lines.push(`Total mass to weigh: ${s.total_weigh_mass_g_batch.toFixed(6)} g`);
+    lines.push(`Total mass to weigh per liter: ${s.total_weigh_mass_g_per_L.toFixed(6)} g/L`);
+    lines.push(`Dry ion equivalent: ${s.dry_ion_equiv_g_per_L.toFixed(6)} g/L`);
+    lines.push('');
+    lines.push('## Ion fit check');
+    lines.push('| Ion | Target mg/L | Supplied mg/L | Difference mg/L | Difference % |');
+    lines.push('|---|---:|---:|---:|---:|');
+    calc.ionRows.forEach(r => lines.push(`| ${r.ion} | ${r.target_mg_L.toFixed(6)} | ${r.supplied_mg_L.toFixed(6)} | ${r.difference_mg_L.toFixed(6)} | ${r.difference_percent.toFixed(6)} |`));
+    lines.push('');
+    lines.push('## Mixing guidance');
+    lines.push('1. Add about 70-80% of the final DI/RO water volume first.');
+    lines.push('2. Add salts slowly with strong mixing. Dissolve each addition before adding the next.');
+    lines.push('3. Add sulfate salts before concentrated calcium/strontium chloride additions.');
+    lines.push('4. Add calcium chloride late/last; it can heat the solution.');
+    lines.push('5. Let the solution cool, then top up to the exact final volume. Do not add salts to the full final water volume.');
+    lines.push('6. Check clarity, pH, density, and scaling risk. Use PHREEQC/Pitzer or a small pilot batch before scale-up.');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  function renderReport(calc) {
+    const report = generateReport(calc);
+    document.getElementById('reportText').textContent = report;
+  }
+
+  function computeAndRender(updateChoices=true) {
+    ensureState();
+    state.volumeL = Number(document.getElementById('volumeL')?.value || state.volumeL) || state.volumeL;
+    state.balanceIon = document.getElementById('balanceIon')?.value || state.balanceIon;
+    state.temperatureC = document.getElementById('temperatureC')?.value || state.temperatureC;
+    state.pH = document.getElementById('pH')?.value || state.pH;
+    autoRepairChoices();
+    lastCalc = calculateRecipe();
+    updateAverageCells(lastCalc.avgData);
+    renderMetrics(lastCalc);
+    renderWarnings(lastCalc);
+    renderRecipeTable(lastCalc);
+    renderIonFitTable(lastCalc);
+    if (updateChoices) renderChoicesTable(lastCalc);
+    renderSubstitutionGuidance(lastCalc);
+    renderReport(lastCalc);
+    saveState();
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === tab));
+  }
+
+  function renderAll() {
+    ensureState();
+    renderSetup();
+    renderTestControls();
+    renderWaterTable();
+    renderStockTable();
+    computeAndRender();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadStateFromStorage();
+    renderAll();
+
+    document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    ['volumeL','balanceIon','temperatureC','pH'].forEach(id => document.getElementById(id).addEventListener('input', () => { computeAndRender(); }));
+    document.getElementById('runTop').addEventListener('click', () => { computeAndRender(); switchTab('results'); });
+    document.getElementById('runResults').addEventListener('click', () => computeAndRender());
+    document.getElementById('footerRun').addEventListener('click', () => { computeAndRender(); switchTab('results'); });
+    document.getElementById('footerResults').addEventListener('click', () => switchTab('results'));
+
+    document.getElementById('addTest').addEventListener('click', () => {
+      const n = state.testNames.length + 1;
+      state.testNames.push('Test ' + n); state.testInclude.push(true);
+      for (const sp of SPECIES) state.waterValues[sp.code].push('');
+      saveState(); renderTestControls(); renderWaterTable(); computeAndRender();
+    });
+    document.getElementById('removeTest').addEventListener('click', () => {
+      if (state.testNames.length <= 1) return alert('At least one test column is required.');
+      state.testNames.pop(); state.testInclude.pop();
+      for (const sp of SPECIES) state.waterValues[sp.code].pop();
+      saveState(); renderTestControls(); renderWaterTable(); computeAndRender();
+    });
+    document.getElementById('clearWater').addEventListener('click', () => {
+      if (!confirm('Clear all water-test concentration values?')) return;
+      for (const sp of SPECIES) state.waterValues[sp.code] = state.testNames.map(()=> '');
+      saveState(); renderWaterTable(); computeAndRender();
+    });
+    document.getElementById('loadSample').addEventListener('click', () => {
+      for (const sp of SPECIES) state.waterValues[sp.code] = state.testNames.map(()=> '');
+      for (const [code, value] of Object.entries(SAMPLE_VALUES)) state.waterValues[code][0] = value;
+      saveState(); renderWaterTable(); computeAndRender();
+    });
+
+    document.getElementById('stockSearch').addEventListener('input', renderStockTable);
+    document.getElementById('markAllOut').addEventListener('click', () => {
+      if (!confirm('Mark every salt out of stock?')) return;
+      for (const salt of SALTS) state.stock[salt.code] = false;
+      saveState(); renderStockTable(); computeAndRender();
+    });
+    document.getElementById('markCommonStock').addEventListener('click', () => {
+      const common = ['NaCl','KCl','NaBr','NaI','Na2SO4','MgCl2.6H2O','CaCl2.2H2O','SrCl2.6H2O'];
+      for (const salt of SALTS) state.stock[salt.code] = common.includes(salt.code);
+      saveState(); renderStockTable(); computeAndRender();
+    });
+    document.getElementById('autoChooseSalts').addEventListener('click', () => { state.choices = {}; autoRepairChoices(); saveState(); computeAndRender(); });
+
+    document.getElementById('saveProject').addEventListener('click', () => downloadText('brine_tool_project.json', JSON.stringify(state, null, 2), 'application/json'));
+    document.getElementById('loadProjectFile').addEventListener('change', e => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try { state = Object.assign(makeDefaultState(), JSON.parse(reader.result)); ensureState(); saveState(); renderAll(); alert('Project loaded.'); }
+        catch (err) { alert('Could not load project JSON: ' + err.message); }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+    document.getElementById('restoreDefaults').addEventListener('click', () => {
+      if (!confirm('Restore default sample data, settings, stock, and salt choices?')) return;
+      state = makeDefaultState(); saveState(); renderAll();
+    });
+
+    document.getElementById('downloadAverages').addEventListener('click', () => downloadText('averaged_water_analysis.csv', rowsToCsv((lastCalc || calculateRecipe()).avgData.rows), 'text/csv'));
+    document.getElementById('downloadStock').addEventListener('click', () => downloadText('stock_inventory.csv', rowsToCsv(stockRows()), 'text/csv'));
+    document.getElementById('downloadCandidates').addEventListener('click', () => downloadText('candidate_salts_by_ion.csv', rowsToCsv(candidateRows(lastCalc || calculateRecipe())), 'text/csv'));
+    document.getElementById('downloadRecipe').addEventListener('click', () => downloadText('salt_recipe.csv', rowsToCsv((lastCalc || calculateRecipe()).recipeRows), 'text/csv'));
+    document.getElementById('downloadIonFit').addEventListener('click', () => downloadText('ion_fit_check.csv', rowsToCsv((lastCalc || calculateRecipe()).ionRows), 'text/csv'));
+    document.getElementById('downloadReport').addEventListener('click', () => downloadText('brine_recipe_report.md', generateReport(lastCalc || calculateRecipe()), 'text/markdown'));
+    document.getElementById('printReport').addEventListener('click', () => window.print());
+  });
+})();
+</script>
+</body>
+</html>

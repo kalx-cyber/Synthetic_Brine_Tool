@@ -1,0 +1,32 @@
+GitHub Pages upload checklist
+============================
+
+Upload these files to the root of your GitHub repository:
+
+Required:
+- index.html
+- .nojekyll
+
+Recommended:
+- README.md
+- README_START_HERE.txt
+
+Optional, local Windows use only:
+- Start_BrineTool_GUI.bat
+
+Do not upload a zip file as the website content. Upload the files themselves.
+
+Repository Settings:
+- Settings > Pages
+- Source: Deploy from a branch
+- Branch: main
+- Folder: / root
+
+Expected URL:
+https://YOUR-GITHUB-USERNAME.github.io/REPOSITORY-NAME/
+
+Test online:
+- Setup tab opens
+- Water tests tab accepts blank cells and zero values correctly
+- Salt stock default shows NaBr in stock and KBr out of stock
+- Results tab exports recipe CSV, ion check CSV, candidate salt list, and report
